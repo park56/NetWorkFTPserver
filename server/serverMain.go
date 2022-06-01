@@ -49,7 +49,7 @@ func ConnHandler(conn net.Conn) {
 		if 0 < n {
 			data := string(recvBuf[:n])
 
-			if strings.Contains(data, "ls") {
+			if strings.Contains(data, "/ls") {
 				log.Println("파일목록")
 				showDirectory(conn)
 

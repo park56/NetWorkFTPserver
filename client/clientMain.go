@@ -65,6 +65,7 @@ func main() {
 		if strings.Contains(s, "/파일목록") { // s에 /파일목록이 포함되어 있는지 확인
 			showDirectory()
 		} else if strings.Contains(s, "/업로드") {
+
 			checkFileName(s)
 		} else if strings.Contains(s, "/다운로드") {
 			downloadFile(conn, s)
@@ -84,7 +85,7 @@ func main() {
 }
 
 func showDirectory() {
-	sentence := []byte("ls")
+	sentence := []byte("/ls")
 	Conn.Write(sentence)
 }
 
@@ -95,17 +96,24 @@ func checkFileName(fileInfo string) {
 	filepath = strings.TrimSuffix(filepath, "\n")
 	filepath = strings.TrimSuffix(filepath, "\r")
 
-	if fileStat, err := os.Stat(filepath); err != nil { // 파일 존재여부
+	fileString := strings.Split(filepath, " ")
+
+	if fileStat, err := os.Stat(fileString[0]); err != nil { // 파일 존재여부
 		log.Println("error messege: ", err)
 		log.Println("파일이 존재하지 않습니다")
 		return
 	} else {
-		sendFile(fileStat, filepath)
-		return
+		if len(fileString) > 1 {
+			sendFile(fileStat, fileString[1], fileString[0])
+			return
+		} else {
+			sendFile(fileStat, fileStat.Name(), fileString[0])
+			return
+		}
 	}
 }
 
-func sendFile(fileInfo fs.FileInfo, filePath string) {
+func sendFile(fileInfo fs.FileInfo, fileName, filePath string) {
 
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -125,8 +133,8 @@ func sendFile(fileInfo fs.FileInfo, filePath string) {
 	defer file.Close()
 
 	size := strconv.Itoa(n)
-	sendData := "/업로드" + fileInfo.Name() + "+" + size
-
+	sendData := "/업로드" + fileName + "+" + size
+	log.Println(sendData)
 	Conn.Write([]byte(sendData))
 
 	Conn.Write(data)
