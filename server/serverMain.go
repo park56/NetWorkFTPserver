@@ -60,6 +60,8 @@ func ConnHandler(conn net.Conn) {
 			} else if strings.Contains(data, "/접속종료") {
 				//endConn()
 
+			} else if strings.Contains(data, "/로그인") {
+				checkLogin(string(data), conn)
 			} else if strings.Contains(data, "/업로드") {
 
 				fileName := strings.TrimLeft(data, "/업로드") // /업로드 파일이름 + 파일사이즈 형태
@@ -89,7 +91,7 @@ func ConnHandler(conn net.Conn) {
 						log.Println("이미지를 다운로드 합니다")
 						uploadFile(conn, fileName, fileData)
 					} else {
-						conn.Write([]byte("이미지를 다운로드하는데 실패함"))
+						conn.Write([]byte("이미지를 업로드하는데 실패함"))
 						continue
 					}
 				} else {
@@ -104,6 +106,27 @@ func ConnHandler(conn net.Conn) {
 
 		}
 	}
+}
+
+func checkLogin(data string, conn net.Conn) {
+
+	idAndpw := strings.TrimLeft(data, "/로그인")
+	idAndpw = strings.TrimSuffix(idAndpw, "\n")
+	idAndpw = strings.TrimSuffix(idAndpw, "\r")
+	onlyIdPw := strings.Split(idAndpw, "+")
+	onlyIdPw[0] = strings.TrimSuffix(onlyIdPw[0], "\r")
+	onlyIdPw[0] = strings.TrimSuffix(onlyIdPw[0], " ")
+
+	log.Println(onlyIdPw[0] + "1")
+
+	log.Println(onlyIdPw[1] + "1")
+
+	if onlyIdPw[0] == "admin" && onlyIdPw[1] == "1234" {
+		conn.Write([]byte("yes"))
+		return
+	}
+	conn.Write([]byte("NO"))
+	return
 }
 
 func showDirectory(conn net.Conn) {
@@ -129,7 +152,7 @@ func checkExistFile(filepath string) bool {
 
 	filepath = strings.TrimSuffix(filepath, "\n")
 	filepath = strings.TrimSuffix(filepath, "\r")
-	newFilePath := "D:/studyschool/network/server/img/" + filepath
+	newFilePath := "D:/studyschool/network/NetWorkFTPserver/server/img/" + filepath
 
 	if _, err := os.Stat(newFilePath); err != nil { // 파일 존재여부
 		return false
@@ -162,7 +185,7 @@ func downloadFile(conn net.Conn, filepath string) {
 
 	filepath = strings.TrimSuffix(filepath, "\n")
 	filepath = strings.TrimSuffix(filepath, "\r")
-	newFilePath := "D:/studyschool/network/server/img/" + filepath
+	newFilePath := "D:/studyschool/network/NetWorkFTPserver/server/img/" + filepath
 
 	if fileStat, err := os.Stat(newFilePath); err != nil { // 파일 존재여부
 		log.Println("error messege: ", err)

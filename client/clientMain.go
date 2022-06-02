@@ -26,7 +26,6 @@ func main() {
 	}
 
 	Conn = conn
-
 	go func() { // 서버로부터 값을 읽는 반복문
 		data := make([]byte, 130990)
 
@@ -49,6 +48,13 @@ func main() {
 
 	}()
 
+	/*if login(conn) {
+		log.Println("로그인 성공")
+	} else {
+		log.Println("로그인 실패")
+		conn.Close()
+	}*/
+
 	newScanner := bufio.NewReader(os.Stdin)
 
 	for { // 서버로 값을 넘기는 반복문
@@ -59,13 +65,9 @@ func main() {
 			continue
 		}
 
-		//realS := strings.TrimSuffix(s, "\n")
-		//realS = strings.TrimSuffix(s, "\r")
-
 		if strings.Contains(s, "/파일목록") { // s에 /파일목록이 포함되어 있는지 확인
 			showDirectory()
 		} else if strings.Contains(s, "/업로드") {
-
 			checkFileName(s)
 		} else if strings.Contains(s, "/다운로드") {
 			downloadFile(conn, s)
@@ -84,6 +86,32 @@ func main() {
 
 }
 
+func login(conn net.Conn) bool {
+
+	newScanner := bufio.NewReader(os.Stdin)
+
+	log.Printf("id : ")
+	id, _ := newScanner.ReadString('\n')
+	id = strings.TrimSuffix(id, "\n")
+	log.Println()
+
+	log.Printf("pw : ")
+	pw, _ := newScanner.ReadString('\n')
+	conn.Write([]byte("/로그인" + id + "+" + pw))
+	result := make([]byte, 50)
+
+	conn.Read(result)
+	req := string(result)
+
+	if strings.Contains(req, "서버에 접속했습니다") {
+		log.Println("로그인 성공")
+		return true
+	} else {
+		log.Println("로그인 실패")
+		return false
+	}
+}
+
 func showDirectory() {
 	sentence := []byte("/ls")
 	Conn.Write(sentence)
@@ -97,17 +125,30 @@ func checkFileName(fileInfo string) {
 	filepath = strings.TrimSuffix(filepath, "\r")
 
 	fileString := strings.Split(filepath, " ")
+	/* 만약 파일경로에 공백이 존재한다면 */
+	if len(fileString) > 2 {
+		for n, v := range fileString {
+			if n == len(fileString)-1 {
+				break
+			}
+			if n == 0 {
+				continue
+			}
+			fileString[0] += " " + v
+		}
+		fileString[1] = fileString[len(fileString)-1]
+	}
 
 	if fileStat, err := os.Stat(fileString[0]); err != nil { // 파일 존재여부
 		log.Println("error messege: ", err)
 		log.Println("파일이 존재하지 않습니다")
 		return
 	} else {
-		if len(fileString) > 1 {
-			sendFile(fileStat, fileString[1], fileString[0])
+		if len(fileString) == 1 {
+			sendFile(fileStat, fileStat.Name(), fileString[0])
 			return
 		} else {
-			sendFile(fileStat, fileStat.Name(), fileString[0])
+			sendFile(fileStat, fileString[1], fileString[0])
 			return
 		}
 	}
