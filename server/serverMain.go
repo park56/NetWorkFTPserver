@@ -11,7 +11,12 @@ import (
 	"strings"
 )
 
+var socketList map[string]net.Conn
+
 func main() {
+
+	socketList = map[string]net.Conn{}
+
 	i, err := net.Listen("tcp", ":8080") //	명령어용 소켓
 	if err != nil {
 		log.Println("8080서버를 열지 못함")
@@ -27,9 +32,14 @@ func main() {
 		}
 		conn.Write([]byte("서버에 접속했습니다"))
 
+		socketList[conn.LocalAddr().String()] = conn // 맵(딕셔너리)에 소켓주소-소켓의 형태로 저장
+
 		defer conn.Close()
 
-		go ConnHandler(conn) // connHandler함수를 비동기화 방식의 쓰레드로 실행
+		log.Println(conn.LocalAddr().String() + " 주소의 소켓 생성")
+
+		go ConnHandler(socketList[conn.LocalAddr().String()]) // connHandler함수를 비동기화 방식의 쓰레드로 실행
+		//go ConnHandler(conn) // connHandler함수를 비동기화 방식의 쓰레드로 실행
 	}
 }
 
@@ -57,8 +67,11 @@ func ConnHandler(conn net.Conn) {
 				filepath := strings.TrimLeft(data, "/다운로드 ")
 				downloadFile(conn, filepath)
 
-			} else if strings.Contains(data, "/접속종료") {
-				//endConn()
+			} else if strings.Contains(data, "/endconn") {
+				conn.Write([]byte("소켓을 종료합니다"))
+				log.Println(conn.LocalAddr().String() + " 주소의 소켓을 종료합니다")
+				conn.Close()
+				delete(socketList, conn.LocalAddr().String())
 			} else if strings.Contains(data, "/업로드") {
 
 				fileName := strings.TrimLeft(data, "/업로드") // /업로드 파일이름 + 파일사이즈 형태
@@ -132,6 +145,10 @@ func showDirectory(conn net.Conn) {
 	}
 
 	var fileList string
+
+	if len(files) == 0 {
+		conn.Write([]byte("파일이 존재하지 않습니다"))
+	}
 
 	for _, file := range files {
 		//conn.Write([]byte(file.Name()))

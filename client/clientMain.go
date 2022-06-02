@@ -81,7 +81,10 @@ func main() {
 			} else if strings.Contains(s, "/다운로드") {
 				downloadFile(conn, s)
 			} else if strings.Contains(s, "/접속종료") {
-				//	endConn()
+				log.Println("접속을 종료합니다")
+				endConn(conn)
+				conn.Close()
+				return
 			} else if strings.Contains(s, "^Y") {
 				conn.Write([]byte("^Y"))
 			} else if strings.Contains(s, "^X") {
@@ -93,8 +96,13 @@ func main() {
 			time.Sleep(time.Duration(3) * time.Second) // 3초
 		}
 	} else {
-		log.Println("로그인을 하세요")
+		endConn(conn)
 	}
+}
+
+func endConn(conn net.Conn) {
+	conn.Write([]byte("/endconn"))
+	return
 }
 
 func login(conn net.Conn) {
