@@ -59,9 +59,6 @@ func ConnHandler(conn net.Conn) {
 
 			} else if strings.Contains(data, "/접속종료") {
 				//endConn()
-
-			} else if strings.Contains(data, "/로그인") {
-				checkLogin(string(data), conn)
 			} else if strings.Contains(data, "/업로드") {
 
 				fileName := strings.TrimLeft(data, "/업로드") // /업로드 파일이름 + 파일사이즈 형태
@@ -97,13 +94,14 @@ func ConnHandler(conn net.Conn) {
 				} else {
 					uploadFile(conn, fileName, fileData)
 				}
+			} else if strings.Contains(data, "/로그인") {
+				checkLogin(string(data), conn)
 			} else {
 				_, err = conn.Write([]byte(data)) // conn소켓을 가진 클라이언트에게 받은 데이터를 다시 보내줌
 				if err != nil {
 					log.Println("쓰기오류")
 				}
 			}
-
 		}
 	}
 }
@@ -117,15 +115,11 @@ func checkLogin(data string, conn net.Conn) {
 	onlyIdPw[0] = strings.TrimSuffix(onlyIdPw[0], "\r")
 	onlyIdPw[0] = strings.TrimSuffix(onlyIdPw[0], " ")
 
-	log.Println(onlyIdPw[0] + "1")
-
-	log.Println(onlyIdPw[1] + "1")
-
 	if onlyIdPw[0] == "admin" && onlyIdPw[1] == "1234" {
-		conn.Write([]byte("yes"))
+		conn.Write([]byte("/로그인 yes"))
 		return
 	}
-	conn.Write([]byte("NO"))
+	conn.Write([]byte("/로그인 NO"))
 	return
 }
 

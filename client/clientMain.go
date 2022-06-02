@@ -15,9 +15,12 @@ import (
 // 1. 파일을 보내는 방법을 생각
 // 2. 명령어 분리 (파일목록, 업로드 파일 경로/파일명 - 여러번 가능 - 서버에서 파일 다운로드, 접속종료)
 
-var Conn net.Conn // conn을 전역변수로 사용하기 위해 선언
+var Conn net.Conn     // conn을 전역변수로 사용하기 위해 선언
+var CheckLogin string // 로그인을 체크하기 위한 함수 나중에 사용자 구조체만들면 거기에 포함
 
 func main() {
+
+	CheckLogin = ""
 
 	conn, err := net.Dial("tcp", ":8080") // 서버와 연결을 시도
 	if err != nil {
@@ -26,6 +29,8 @@ func main() {
 	}
 
 	Conn = conn
+	login(conn)
+
 	go func() { // 서버로부터 값을 읽는 반복문
 		data := make([]byte, 130990)
 
@@ -40,75 +45,83 @@ func main() {
 
 			if strings.Contains(uploadData, "/업로드") {
 				whenDownload(uploadData)
+			} else if strings.Contains(uploadData, "/로그인") {
+				loginCheck := strings.TrimLeft(string(uploadData), "/로그인 ")
+				CheckLogin = isLogin(loginCheck)
 			} else {
 				log.Println("server send : " + string(data[:n])) // 읽은 데이터를 출력
 				time.Sleep(time.Duration(3) * time.Second)       // 쉬기 3초간
 			}
 		}
-
 	}()
 
-	/*if login(conn) {
-		log.Println("로그인 성공")
-	} else {
-		log.Println("로그인 실패")
-		conn.Close()
-	}*/
-
-	newScanner := bufio.NewReader(os.Stdin)
-
-	for { // 서버로 값을 넘기는 반복문
-		var s string
-		s, err = newScanner.ReadString('\n')
-		if err != nil {
-			log.Println("입력을 받는데 오류가 생김")
-			continue
+	/* 로그인 대기 */
+	for {
+		if CheckLogin != "" {
+			break
 		}
-
-		if strings.Contains(s, "/파일목록") { // s에 /파일목록이 포함되어 있는지 확인
-			showDirectory()
-		} else if strings.Contains(s, "/업로드") {
-			checkFileName(s)
-		} else if strings.Contains(s, "/다운로드") {
-			downloadFile(conn, s)
-		} else if strings.Contains(s, "/접속종료") {
-			//	endConn()
-		} else if strings.Contains(s, "^Y") {
-			conn.Write([]byte("^Y"))
-		} else if strings.Contains(s, "^X") {
-			conn.Write([]byte("^X"))
-		} else {
-			log.Println("잘못된 명령어")
-			continue
-		}
-		time.Sleep(time.Duration(3) * time.Second) // 3초
 	}
 
+	if CheckLogin == "로그인" {
+
+		newScanner := bufio.NewReader(os.Stdin)
+
+		for { // 서버로 값을 넘기는 반복문
+			var s string
+			s, err = newScanner.ReadString('\n')
+			if err != nil {
+				log.Println("입력을 받는데 오류가 생김")
+				continue
+			}
+
+			if strings.Contains(s, "/파일목록") { // s에 /파일목록이 포함되어 있는지 확인
+				showDirectory()
+			} else if strings.Contains(s, "/업로드") {
+				checkFileName(s)
+			} else if strings.Contains(s, "/다운로드") {
+				downloadFile(conn, s)
+			} else if strings.Contains(s, "/접속종료") {
+				//	endConn()
+			} else if strings.Contains(s, "^Y") {
+				conn.Write([]byte("^Y"))
+			} else if strings.Contains(s, "^X") {
+				conn.Write([]byte("^X"))
+			} else {
+				log.Println("잘못된 명령어")
+				continue
+			}
+			time.Sleep(time.Duration(3) * time.Second) // 3초
+		}
+	} else {
+		log.Println("로그인을 하세요")
+	}
 }
 
-func login(conn net.Conn) bool {
+func login(conn net.Conn) {
 
 	newScanner := bufio.NewReader(os.Stdin)
 
-	log.Printf("id : ")
+	log.Println("id : ")
 	id, _ := newScanner.ReadString('\n')
 	id = strings.TrimSuffix(id, "\n")
-	log.Println()
+	id = strings.TrimSuffix(id, "\r")
 
-	log.Printf("pw : ")
+	log.Println("pw : ")
 	pw, _ := newScanner.ReadString('\n')
+	pw = strings.TrimSuffix(pw, "\n")
+	id = strings.TrimSuffix(id, "\r")
+
 	conn.Write([]byte("/로그인" + id + "+" + pw))
-	result := make([]byte, 50)
+	return
+}
 
-	conn.Read(result)
-	req := string(result)
-
-	if strings.Contains(req, "서버에 접속했습니다") {
+func isLogin(auth string) string {
+	if strings.Contains(auth, "yes") {
 		log.Println("로그인 성공")
-		return true
+		return "로그인"
 	} else {
 		log.Println("로그인 실패")
-		return false
+		return "실패"
 	}
 }
 
