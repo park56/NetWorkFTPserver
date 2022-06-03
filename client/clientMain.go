@@ -196,7 +196,6 @@ func sendFile(fileInfo fs.FileInfo, fileName, filePath string) {
 
 	size := strconv.Itoa(n)
 	sendData := "/업로드" + fileName + "+" + size
-	log.Println(sendData)
 	Conn.Write([]byte(sendData))
 
 	Conn.Write(data)
