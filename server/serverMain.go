@@ -20,7 +20,7 @@ func main() {
 
 	socketList = map[string]net.Conn{}
 
-	i, err := net.Listen("tcp", ":8080") //	명령어용 소켓
+	i, err := net.Listen("tcp", ":5060") //	명령어용 소켓
 	if err != nil {
 		log.Println("8080서버를 열지 못함")
 	}
@@ -95,7 +95,11 @@ func ConnHandler(conn net.Conn) {
 
 				for {
 					n, _ = conn.Read(fileBuf[temp:]) // 만든버퍼에 데이터 읽기
-					temp += n                        // 받은 데이터만큼 기준을 올림
+					/*if n <= 0 || (err != nil) {        // 클라이언트가 강제로 종료되었을 때
+						log.Println("다운로드중 문제가 발생")
+						return
+					}*/
+					temp += n // 받은 데이터만큼 기준을 올림
 					//log.Println("엔의 크기 : ", n)
 					//log.Println("템프 의 크기 : ", temp)
 					if temp >= len(fileBuf) { // 데이터를 다 받으면

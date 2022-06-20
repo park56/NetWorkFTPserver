@@ -20,7 +20,7 @@ func main() {
 
 	CheckLogin = ""
 
-	conn, err := net.Dial("tcp", ":8080") // 서버와 연결을 시도
+	conn, err := net.Dial("tcp", "10.80.163.66:8080") // 서버와 연결을 시도 서버의 주소 필요
 	if err != nil {
 		log.Println(":8080서버가 존재하지 않음")
 		return
@@ -275,8 +275,12 @@ func whenDownload(uploadData string) {
 	temp := 0
 
 	for {
-		n, _ := Conn.Read(fileBuf[temp:]) // 만든버퍼에 데이터 읽기
-		temp += n                         // 받은 데이터만큼 기준을 올림
+		n, err := Conn.Read(fileBuf[temp:]) // 만든버퍼에 데이터 읽기
+		if n <= 0 || (err != nil) {         // 클라이언트가 강제로 종료되었을 때
+			log.Println("다운로드중 문제가 발생")
+			return
+		}
+		temp += n // 받은 데이터만큼 기준을 올림
 		//log.Println("엔의 크기 : ", n)
 		//log.Println("템프 의 크기 : ", temp)
 		if temp >= len(fileBuf) { // 데이터를 다 받으면
